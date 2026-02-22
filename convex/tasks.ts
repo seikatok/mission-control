@@ -209,7 +209,6 @@ export const update = mutation({
     if (args.boardId !== undefined) patch.boardId = args.boardId;
     if (args.status !== undefined) {
       patch.status = args.status;
-      if (args.status === "canceled") patch.stage = null;
     }
     if (args.priority !== undefined) patch.priority = args.priority;
     if (args.dueAt !== undefined) patch.dueAt = args.dueAt;
@@ -250,7 +249,6 @@ export const moveStatus = mutation({
 
     await ctx.db.patch(args.taskId, {
       status: args.newStatus,
-      stage: null,
       updatedAt: Date.now(),
     });
 

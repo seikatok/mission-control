@@ -1,0 +1,116 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/shared/empty-state";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
+import { GOAL_STATUS_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+
+const GOAL_STATUS_COLORS: Record<string, string> = {
+  active: "bg-green-600",
+  paused: "bg-yellow-600",
+  completed: "bg-blue-600",
+  archived: "bg-zinc-600",
+};
+
+export default function GoalsPage() {
+  const router = useRouter();
+  const [domain, setDomain] = useState<"all" | "work" | "personal">("all");
+  const [status, setStatus] = useState<"all" | "active" | "paused" | "completed" | "archived">("all");
+
+  const goals = useQuery(api.goals.list, {
+    domain: domain === "all" ? undefined : domain,
+    status: status === "all" ? undefined : status,
+  });
+
+  return (
+    <div className="flex flex-col h-full">
+      <PageHeader
+        title="Goals"
+        description="Manage objectives and outcomes"
+        action={
+          <Button onClick={() => router.push("/goals/new")} className="bg-blue-600 hover:bg-blue-700">
+            + New Goal
+          </Button>
+        }
+      />
+      <div className="flex gap-3 px-6 py-3 border-b border-slate-800">
+        <Select value={domain} onValueChange={(v) => setDomain(v as typeof domain)}>
+          <SelectTrigger className="w-36 bg-slate-900 border-slate-700 text-sm">
+            <SelectValue placeholder="Domain" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Domains</SelectItem>
+            <SelectItem value="work">Work</SelectItem>
+            <SelectItem value="personal">Personal</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+          <SelectTrigger className="w-40 bg-slate-900 border-slate-700 text-sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="paused">Paused</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        {!goals ? (
+          <p className="text-sm text-slate-500">Loading...</p>
+        ) : goals.length === 0 ? (
+          <EmptyState
+            title="No goals found"
+            description="Create your first goal to get started"
+            action={<Button onClick={() => router.push("/goals/new")} className="bg-blue-600 hover:bg-blue-700">New Goal</Button>}
+          />
+        ) : (
+          <div className="grid gap-3">
+            {goals.map((goal) => (
+              <div
+                key={goal._id}
+                className="cursor-pointer rounded-lg border border-slate-800 bg-slate-900 p-4 hover:bg-slate-800 transition-colors"
+                onClick={() => router.push(`/goals/${goal._id}`)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-medium text-slate-100 truncate">{goal.title}</h3>
+                      <StatusBadge
+                        label={GOAL_STATUS_LABELS[goal.status] ?? goal.status}
+                        colorClass={GOAL_STATUS_COLORS[goal.status] ?? "bg-slate-500"}
+                      />
+                      <StatusBadge
+                        label={PRIORITY_LABELS[goal.priority] ?? goal.priority}
+                        colorClass={PRIORITY_COLORS[goal.priority] ?? "bg-slate-500"}
+                      />
+                    </div>
+                    <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                      <span className={cn("capitalize", goal.domain === "work" ? "text-blue-400" : "text-purple-400")}>
+                        {goal.domain}
+                      </span>
+                      {goal.area && <span>· {goal.area}</span>}
+                      {goal.timeframe?.endDate && <span>· Due {goal.timeframe.endDate}</span>}
+                    </div>
+                    {goal.description && (
+                      <p className="mt-1.5 text-sm text-slate-400 line-clamp-1">{goal.description}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

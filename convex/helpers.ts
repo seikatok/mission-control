@@ -1,6 +1,17 @@
 import { MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
+/**
+ * 全エージェント共通の出力言語ポリシー。
+ * モデル呼び出し実装時に system prompt の先頭に必ず prepend すること。
+ * AgentTemplate の description にも埋め込んで意図を明示する。
+ */
+export const LANGUAGE_POLICY =
+  "【言語ポリシー】あなたの出力は原則として日本語で行うこと。" +
+  "固有名詞・コード・API名・識別子・コマンドは英語のままでよい。" +
+  "UIラベルの単語（ステータス名など）は英語のままでよい。" +
+  "出力の構成は「結論 → 根拠 → 次のアクション」の順で簡潔にまとめること。";
+
 type ActivityType =
   | "goal_created"
   | "goal_updated"

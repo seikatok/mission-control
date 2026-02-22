@@ -1,5 +1,5 @@
 import { mutation } from "./_generated/server";
-import { appendActivity } from "./helpers";
+import { appendActivity, LANGUAGE_POLICY } from "./helpers";
 
 export default mutation({
   args: {},
@@ -15,17 +15,18 @@ export default mutation({
 
     // --- User ---
     const userId = await ctx.db.insert("users", {
-      displayName: "Default User",
+      displayName: "管理者",
       email: "admin@mission-control.local",
       createdAt: now,
       updatedAt: now,
     });
 
     // --- Skills ---
+    // key は識別子なので英語のまま
     const skillWebSearch = await ctx.db.insert("skills", {
       key: "web_search",
-      name: "Web Search",
-      description: "Search the web for information",
+      name: "Web 検索",
+      description: "Web 上の情報を検索・収集する",
       category: "tool",
       risk: { canReadSensitive: false, canWrite: false, canExternalSend: true },
       createdAt: now,
@@ -34,8 +35,8 @@ export default mutation({
 
     const skillFileWrite = await ctx.db.insert("skills", {
       key: "file_write",
-      name: "File Write",
-      description: "Write files to the workspace",
+      name: "ファイル書き込み",
+      description: "ワークスペース内にファイルを作成・編集する",
       category: "tool",
       risk: { canReadSensitive: false, canWrite: true, canExternalSend: false },
       createdAt: now,
@@ -44,8 +45,8 @@ export default mutation({
 
     const skillCodeExec = await ctx.db.insert("skills", {
       key: "code_exec",
-      name: "Code Execution",
-      description: "Execute code in the workspace",
+      name: "コード実行",
+      description: "ワークスペース内でコードを実行する",
       category: "tool",
       risk: { canReadSensitive: true, canWrite: true, canExternalSend: false },
       createdAt: now,
@@ -53,9 +54,11 @@ export default mutation({
     });
 
     // --- AgentTemplates ---
+    // description に LANGUAGE_POLICY を埋め込み、モデル呼び出し実装時の指針とする
     const researchTemplateId = await ctx.db.insert("agentTemplates", {
-      name: "Research Agent",
-      description: "Conducts web research and summarizes findings",
+      name: "リサーチエージェント",
+      description:
+        "Web 検索でリサーチを行い、調査結果を日本語でまとめる。" + LANGUAGE_POLICY,
       policy: {
         allowExternalSend: false,
         allowFileWriteOutsideWorkspace: false,
@@ -68,8 +71,9 @@ export default mutation({
     });
 
     const devTemplateId = await ctx.db.insert("agentTemplates", {
-      name: "Dev Agent",
-      description: "Writes and executes code in the workspace",
+      name: "開発エージェント",
+      description:
+        "コードを生成・実行し、実装結果を日本語でレポートする。" + LANGUAGE_POLICY,
       policy: {
         allowExternalSend: false,
         allowFileWriteOutsideWorkspace: false,
@@ -83,7 +87,7 @@ export default mutation({
 
     // --- Gateway ---
     const gatewayId = await ctx.db.insert("gateways", {
-      name: "Local Dev Gateway",
+      name: "ローカル開発環境",
       kind: "local",
       workspaceRoot: "/Users/seika/Dev",
       isOnline: true,
@@ -94,7 +98,7 @@ export default mutation({
 
     // --- Agents ---
     const researchAgentId = await ctx.db.insert("agents", {
-      name: "Researcher Alpha",
+      name: "調査ボット",
       templateId: researchTemplateId,
       status: "idle",
       gatewayId,
@@ -103,7 +107,7 @@ export default mutation({
     });
 
     const devAgentId = await ctx.db.insert("agents", {
-      name: "Dev Bot",
+      name: "開発ボット",
       templateId: devTemplateId,
       status: "running",
       gatewayId,
@@ -113,25 +117,25 @@ export default mutation({
 
     // --- Goals ---
     const goal1Id = await ctx.db.insert("goals", {
-      title: "Launch Mission Control MVP",
-      description: "Build and ship the first version of Mission Control",
+      title: "新規LPのCVR改善：ヒーロービジュアルと訴求文言の最適化",
+      description: "現行LPのCVRが1.5%と低い。ヒーロービジュアルと訴求文言を見直し、A/Bテストで3%以上を目指す。",
       domain: "work",
-      area: "Engineering",
+      area: "マーケティング",
       status: "active",
       priority: "p1",
       ownerUserId: userId,
       timeframe: { startDate: "2026-02-01", endDate: "2026-03-31" },
       successMetrics: [
-        { label: "All 9 pages working", target: "9", current: "9" },
-        { label: "Seed data loaded", target: "1", current: "1" },
+        { label: "CVR", target: "3%以上", current: "1.5%" },
+        { label: "A/Bテスト完了", target: "1回", current: "0回" },
       ],
-      tags: ["mvp", "engineering"],
+      tags: ["lp", "cvr", "marketing"],
       createdAt: now,
       updatedAt: now,
     });
 
     const goal1BoardId = await ctx.db.insert("boards", {
-      name: "Launch Mission Control MVP Board",
+      name: "CVR改善 タスクボード",
       goalId: goal1Id,
       columns: undefined,
       createdAt: now,
@@ -139,20 +143,20 @@ export default mutation({
     });
 
     const goal2Id = await ctx.db.insert("goals", {
-      title: "Improve Agent Observability",
-      description: "Make it easier to monitor and debug agent runs",
+      title: "エージェント監視基盤の強化",
+      description: "エージェントの実行ログと異常検知を改善し、オペレーターが迅速に状況を把握できるようにする。",
       domain: "work",
-      area: "Product",
+      area: "エンジニアリング",
       status: "active",
       priority: "p2",
       ownerUserId: userId,
-      tags: ["observability"],
+      tags: ["observability", "agent"],
       createdAt: now,
       updatedAt: now,
     });
 
     await ctx.db.insert("boards", {
-      name: "Improve Agent Observability Board",
+      name: "監視基盤強化 タスクボード",
       goalId: goal2Id,
       columns: undefined,
       createdAt: now,
@@ -160,10 +164,10 @@ export default mutation({
     });
 
     const goal3Id = await ctx.db.insert("goals", {
-      title: "Personal: Learn Convex",
-      description: "Get comfortable with Convex reactive database",
+      title: "Convex の習得と実践",
+      description: "Convex のリアクティブDBとミューテーション設計を理解し、Mission Control の開発に活かす。",
       domain: "personal",
-      area: "Learning",
+      area: "学習",
       status: "active",
       priority: "p2",
       ownerUserId: userId,
@@ -172,7 +176,7 @@ export default mutation({
     });
 
     await ctx.db.insert("boards", {
-      name: "Personal: Learn Convex Board",
+      name: "Convex 習得 タスクボード",
       goalId: goal3Id,
       columns: undefined,
       createdAt: now,
@@ -181,7 +185,7 @@ export default mutation({
 
     // --- Tasks ---
     const task1Id = await ctx.db.insert("tasks", {
-      title: "Implement Convex schema",
+      title: "現状分析：主要導線のクリック率と離脱ポイントの確認",
       goalId: goal1Id,
       boardId: goal1BoardId,
       status: "done",
@@ -192,7 +196,7 @@ export default mutation({
     });
 
     const task2Id = await ctx.db.insert("tasks", {
-      title: "Build Dashboard page",
+      title: "仮説出し：CVR改善案を3つ作りスコアリングする",
       goalId: goal1Id,
       boardId: goal1BoardId,
       status: "in_progress",
@@ -203,18 +207,18 @@ export default mutation({
     });
 
     const task3Id = await ctx.db.insert("tasks", {
-      title: "Write E2E tests",
+      title: "検証：A/Bテストの設計と実装",
       goalId: goal1Id,
       boardId: goal1BoardId,
       status: "todo",
       priority: "p2",
-      dueAt: now + 7 * 24 * 60 * 60 * 1000, // 7 days from now
+      dueAt: now + 7 * 24 * 60 * 60 * 1000, // 7日後
       createdAt: now,
       updatedAt: now,
     });
 
     const task4Id = await ctx.db.insert("tasks", {
-      title: "Research competitor products",
+      title: "競合AIエージェントツールの機能・価格・訴求ポイントの調査",
       goalId: goal2Id,
       boardId: null,
       status: "todo",
@@ -224,27 +228,27 @@ export default mutation({
       updatedAt: now,
     });
 
-    // Overdue task (for dashboard demo)
+    // 期限切れタスク（ダッシュボードのデモ用）
     const overdueTaskId = await ctx.db.insert("tasks", {
-      title: "Update deployment docs",
+      title: "デプロイ手順書の更新（本番環境対応）",
       goalId: goal1Id,
       boardId: goal1BoardId,
       status: "todo",
       priority: "p2",
-      dueAt: now - 3 * 24 * 60 * 60 * 1000, // 3 days ago (overdue)
+      dueAt: now - 3 * 24 * 60 * 60 * 1000, // 3日前（期限切れ）
       createdAt: now,
       updatedAt: now,
     });
 
-    // --- Run ---
+    // --- Runs ---
     const runId = await ctx.db.insert("runs", {
       agentId: devAgentId,
       taskId: task2Id,
       goalId: goal1Id,
       gatewayId,
       status: "running",
-      objective: "Build the Dashboard page with 4 summary cards",
-      startedAt: now - 10 * 60 * 1000, // started 10 min ago
+      objective: "既存LPの導線を分析し、CVRが低い箇所を特定する。改善仮説を3案作成してスコアリングまで行う。",
+      startedAt: now - 10 * 60 * 1000, // 10分前に開始
       createdAt: now,
       updatedAt: now,
     });
@@ -254,32 +258,32 @@ export default mutation({
       taskId: task4Id,
       goalId: goal2Id,
       status: "succeeded",
-      objective: "Research top 5 AI ops tools",
+      objective: "上位5件のAIエージェントツールの機能・価格・訴求ポイントを調査し、日本語でまとめる。",
       startedAt: now - 30 * 60 * 1000,
       finishedAt: now - 5 * 60 * 1000,
-      summary: "Found 5 major competitors. Detailed report created.",
+      summary: "主要競合5社の調査完了。各社の差別化ポイントと価格帯を比較表にまとめた。Mission Control の強みは承認ファーストの設計にある。",
       createdAt: now - 30 * 60 * 1000,
       updatedAt: now - 5 * 60 * 1000,
     });
 
-    // --- Decision ---
+    // --- Decisions ---
     const decisionId = await ctx.db.insert("decisions", {
       type: "execution_approval",
       status: "pending",
-      title: "Deploy to staging environment",
-      description: "Agent requests approval to deploy the latest build to staging.",
+      title: "A/Bテスト案Aでの実施承認：ヒーロービジュアル変更の適用",
+      description: "エージェントが案A（ヒーロービジュアル変更）でA/Bテストを実施しようとしています。承認してよいか確認してください。",
       goalId: goal1Id,
       taskId: task2Id,
       agentId: devAgentId,
       options: [
-        { key: "deploy_now", label: "Deploy now", details: "Run deployment script immediately", risk: "Low" },
-        { key: "delay", label: "Delay 1 hour", details: "Schedule for later", risk: "None" },
+        { key: "approve_a", label: "案Aで進める", details: "ヒーロービジュアルを差し替えてA/Bテストを開始する", risk: "低" },
+        { key: "delay", label: "1週間後に再検討", details: "追加データ収集後に改めて判断する", risk: "なし" },
       ],
-      recommendation: "deploy_now",
+      recommendation: "approve_a",
       executionPreview: {
         commands: ["pnpm build", "pnpm deploy --env staging"],
-        fileWrites: [],
-        externalActions: [{ kind: "http_post", note: "POST to staging webhook" }],
+        fileWrites: [{ path: "public/hero.jpg", note: "ヒーロー画像を差し替え" }],
+        externalActions: [{ kind: "http_post", note: "A/Bテスト開始 webhook に通知" }],
       },
       createdAt: now,
       updatedAt: now,
@@ -288,13 +292,13 @@ export default mutation({
     const decision2Id = await ctx.db.insert("decisions", {
       type: "clarification",
       status: "pending",
-      title: "Which database region to use?",
-      description: "Need human input on preferred database region for the new service.",
+      title: "データベースのリージョン選択：東京 or バージニア",
+      description: "新サービスのDBリージョンについて人間の判断が必要です。どちらを優先しますか？",
       goalId: goal2Id,
       agentId: researchAgentId,
       options: [
-        { key: "us_east", label: "US East", risk: "Low latency for US users" },
-        { key: "eu_west", label: "EU West", risk: "GDPR compliant" },
+        { key: "ap_northeast_1", label: "東京（ap-northeast-1）", risk: "国内ユーザー低レイテンシ・GDPR非対象" },
+        { key: "us_east_1", label: "バージニア（us-east-1）", risk: "グローバル展開に有利・コスト低" },
       ],
       createdAt: now - 60 * 60 * 1000,
       updatedAt: now - 60 * 60 * 1000,
@@ -302,24 +306,24 @@ export default mutation({
 
     // --- Outputs ---
     await ctx.db.insert("outputs", {
-      title: "Competitor Analysis Report",
+      title: "競合調査レポート：上位5社の訴求パターンと価格帯まとめ",
       type: "research",
       goalId: goal2Id,
       taskId: task4Id,
-      summary: "Analyzed 5 major AI ops tools. Mission Control differentiates via approval-first design.",
+      summary: "主要競合5社を調査。各社は「自動化の速さ」を訴求しているが、承認フローの透明性を前面に出している製品はなかった。Mission Control の差別化ポイントとして有効。",
       artifacts: [
-        { kind: "doc", ref: "https://notion.so/competitor-analysis", note: "Full report in Notion" },
+        { kind: "doc", ref: "https://notion.so/competitor-analysis", note: "Notion 詳細レポート" },
       ],
       createdAt: now - 5 * 60 * 1000,
       updatedAt: now - 5 * 60 * 1000,
     });
 
     await ctx.db.insert("outputs", {
-      title: "Schema Design v1",
+      title: "スキーマ設計書 v1：15テーブル構成とインデックス設計",
       type: "architecture",
       goalId: goal1Id,
       taskId: task1Id,
-      summary: "15-table Convex schema with full index coverage for Mission Control MVP.",
+      summary: "Mission Control MVP 向けの 15テーブル Convex スキーマを設計。全クエリに対応するインデックスを網羅し、ページング・フィルタ・ソートに対応。",
       createdAt: now - 60 * 60 * 1000,
       updatedAt: now - 60 * 60 * 1000,
     });
@@ -327,7 +331,7 @@ export default mutation({
     // --- ComplianceEvents ---
     await ctx.db.insert("complianceEvents", {
       severity: "warn",
-      message: "Agent attempted to write outside workspace root",
+      message: "個人情報を含む可能性のあるログが出力されました。内容を確認してください。",
       agentId: devAgentId,
       gatewayId,
       attemptedAction: "file_write: /etc/hosts",
@@ -338,19 +342,19 @@ export default mutation({
 
     await ctx.db.insert("complianceEvents", {
       severity: "info",
-      message: "Agent requested external HTTP call",
+      message: "外部HTTP通信のリクエストを検知しました。マスキング処理を適用して対応済みです。",
       agentId: researchAgentId,
       attemptedAction: "http_get: https://example.com",
       policyRule: "requireApprovalFor: external_send",
       resolved: true,
       resolvedAt: now - 30 * 60 * 1000,
-      resolvedNote: "Approved for research purposes",
+      resolvedNote: "調査目的のアクセスであることを確認。承認済み。",
       createdAt: now - 3 * 60 * 60 * 1000,
     });
 
     await appendActivity(ctx, {
       type: "system_seed",
-      message: "Seed data initialized",
+      message: "シードデータを初期化しました",
     });
 
     console.log("Seed completed successfully.");

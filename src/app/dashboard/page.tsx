@@ -4,127 +4,224 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import {
-  AGENT_STATUS_COLORS,
-  AGENT_STATUS_LABELS,
-} from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, formatAge, formatDate } from "@/lib/utils";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const pendingDecisions = useQuery(api.decisions.list, { status: "pending", limit: 200 });
-  const overdueTasks = useQuery(api.tasks.listOverdue, { limit: 200 });
-  const agents = useQuery(api.agents.list);
-  const gateways = useQuery(api.gateways.list);
+  const summary = useQuery(api.dashboard.getDashboardSummary, {});
 
-  const pendingCount = pendingDecisions?.length ?? 0;
-  const overdueCount = overdueTasks?.length ?? 0;
+  if (!summary) {
+    return (
+      <div className="flex flex-col h-full">
+        <PageHeader title="ダッシュボード" description="AI運用の現在の状況" />
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="border-slate-800 bg-slate-900">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="mt-2 h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="px-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="border-slate-800 bg-slate-900">
+              <CardHeader>
+                <Skeleton className="h-4 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[...Array(3)].map((_, j) => (
+                  <Skeleton key={j} className="h-10 w-full" />
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  const agentsByStatus = agents?.reduce<Record<string, number>>((acc, a) => {
-    acc[a.status] = (acc[a.status] ?? 0) + 1;
-    return acc;
-  }, {}) ?? {};
+  const { kpi } = summary;
+  const pendingCount = kpi.pendingDecisions.count;
 
-  const onlineGateways = gateways?.filter((g) => g.isOnline).length ?? 0;
-  const offlineGateways = gateways?.filter((g) => !g.isOnline).length ?? 0;
+  const kpiCards = [
+    {
+      title: "保留中の判断",
+      description: "人間の承認を待っています",
+      count: kpi.pendingDecisions.count,
+      oldestAgeMs: kpi.pendingDecisions.oldestAgeMs,
+      href: "/decisions",
+      highlight: kpi.pendingDecisions.count > 0,
+      highlightColor: "text-yellow-400",
+    },
+    {
+      title: "判断待ちタスク",
+      description: "Decision の結果を待っています",
+      count: kpi.waitingDecisionTasks.count,
+      oldestAgeMs: kpi.waitingDecisionTasks.oldestAgeMs,
+      href: "/tasks",
+      highlight: kpi.waitingDecisionTasks.count > 0,
+      highlightColor: "text-yellow-400",
+    },
+    {
+      title: "ブロック中",
+      description: "何らかの理由で停止中",
+      count: kpi.blockedTasks.count,
+      oldestAgeMs: kpi.blockedTasks.oldestAgeMs,
+      href: "/tasks",
+      highlight: kpi.blockedTasks.count > 0,
+      highlightColor: "text-red-400",
+    },
+    {
+      title: "期限超過",
+      description: "期限を過ぎたタスク",
+      count: kpi.overdueTasks.count,
+      oldestAgeMs: kpi.overdueTasks.oldestAgeMs,
+      href: "/tasks",
+      highlight: kpi.overdueTasks.count > 0,
+      highlightColor: "text-red-400",
+    },
+  ];
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader
-        title="Dashboard"
-        description="Current state of all AI operations"
-      />
+      <PageHeader title="ダッシュボード" description="AI運用の現在の状況" />
+
+      {/* KPI Cards */}
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Pending Decisions */}
-        <Card
-          className="cursor-pointer border-slate-800 bg-slate-900 hover:bg-slate-800 transition-colors"
-          onClick={() => router.push("/decisions")}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Pending Decisions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={cn("text-3xl font-bold", pendingCount > 0 ? "text-yellow-400" : "text-slate-100")}>
-              {pendingCount}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">Awaiting human approval</p>
-          </CardContent>
-        </Card>
-
-        {/* Overdue Tasks */}
-        <Card
-          className="cursor-pointer border-slate-800 bg-slate-900 hover:bg-slate-800 transition-colors"
-          onClick={() => router.push("/tasks")}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Overdue Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={cn("text-3xl font-bold", overdueCount > 0 ? "text-red-400" : "text-slate-100")}>
-              {overdueCount}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">Past due date</p>
-          </CardContent>
-        </Card>
-
-        {/* Agents by Status */}
-        <Card
-          className="cursor-pointer border-slate-800 bg-slate-900 hover:bg-slate-800 transition-colors"
-          onClick={() => router.push("/team")}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Agents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-slate-100">{agents?.length ?? 0}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {Object.entries(agentsByStatus).map(([status, count]) => (
-                <span
-                  key={status}
+        {kpiCards.map((card) => (
+          <Card
+            key={card.title}
+            className="cursor-pointer border-slate-800 bg-slate-900 hover:bg-slate-800 transition-colors"
+            onClick={() => router.push(card.href)}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-400">
+                {card.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2">
+                <p
                   className={cn(
-                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white",
-                    AGENT_STATUS_COLORS[status] ?? "bg-slate-500",
+                    "text-3xl font-bold",
+                    card.highlight ? card.highlightColor : "text-slate-100"
                   )}
                 >
-                  {AGENT_STATUS_LABELS[status] ?? status} {count}
-                </span>
-              ))}
-            </div>
+                  {card.count}
+                </p>
+                {card.oldestAgeMs != null && (
+                  <span className="text-xs text-slate-500">
+                    最長 {formatAge(card.oldestAgeMs)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{card.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Top5 Lists */}
+      <div className="px-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Pending Decisions Top5 */}
+        <Card className="border-slate-800 bg-slate-900">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-400">
+              保留中の判断 Top5
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {kpi.pendingDecisions.top5.length === 0 ? (
+              <p className="text-sm text-slate-500">該当なし</p>
+            ) : (
+              <div className="space-y-2">
+                {kpi.pendingDecisions.top5.map((d) => (
+                  <div
+                    key={d._id}
+                    className="flex items-center justify-between rounded-md border border-slate-800 px-3 py-2 hover:bg-slate-800 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/decisions/${d._id}`)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-100 truncate">
+                        {d.title}
+                      </p>
+                      <p className="text-xs text-slate-500 capitalize">
+                        {d.type.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                    <span className="ml-2 text-xs font-medium text-yellow-400 shrink-0">
+                      {formatAge(d.ageMs)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Gateways */}
-        <Card
-          className="cursor-pointer border-slate-800 bg-slate-900 hover:bg-slate-800 transition-colors"
-          onClick={() => router.push("/gateways")}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Gateways</CardTitle>
+        {/* Overdue Tasks Top5 */}
+        <Card className="border-slate-800 bg-slate-900">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-400">
+              期限超過タスク Top5
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-slate-100">{gateways?.length ?? 0}</p>
-            <div className="mt-2 flex gap-2 text-xs">
-              <span className="text-green-400">{onlineGateways} online</span>
-              <span className="text-slate-500">·</span>
-              <span className="text-slate-400">{offlineGateways} offline</span>
-            </div>
+            {kpi.overdueTasks.top5.length === 0 ? (
+              <p className="text-sm text-slate-500">該当なし</p>
+            ) : (
+              <div className="space-y-2">
+                {kpi.overdueTasks.top5.map((t) => (
+                  <div
+                    key={t._id}
+                    data-testid="overdue-task-item"
+                    className="flex items-center justify-between rounded-md border border-slate-800 px-3 py-2 hover:bg-slate-800 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/tasks/${t._id}`)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p data-testid="overdue-task-title" className="text-sm font-bold text-red-400 truncate">
+                        {t.title}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        期限: {formatDate(t.dueAt)} / {t.priority.toUpperCase()}
+                      </p>
+                    </div>
+                    <span className="ml-2 text-xs font-medium text-red-400 shrink-0">
+                      {formatAge(t.ageMs)} 超過
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick summaries */}
+      {/* Activity Feed */}
+      <div className="px-6 mt-4">
+        <ActivityFeed />
+      </div>
+
+      {/* Alert Banner */}
       {pendingCount > 0 && (
-        <div className="px-6">
+        <div className="px-6 mt-4">
           <div className="rounded-lg border border-yellow-800 bg-yellow-950/30 p-4">
             <p className="text-sm font-medium text-yellow-400">
-              {pendingCount} decision{pendingCount > 1 ? "s" : ""} need{pendingCount === 1 ? "s" : ""} your attention
+              {pendingCount} 件の判断があなたの対応を待っています
             </p>
             <button
               onClick={() => router.push("/decisions")}
               className="mt-1 text-xs text-yellow-500 underline hover:text-yellow-300"
             >
-              Go to Decisions →
+              判断一覧へ →
             </button>
           </div>
         </div>

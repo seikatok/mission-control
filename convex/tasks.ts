@@ -1,6 +1,14 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { appendActivity, validateString, validateOptionalString } from "./helpers";
+import { Id } from "./_generated/dataModel";
+import { appendActivity, appendReasonNote, validateString, validateOptionalString } from "./helpers";
+
+export const get = query({
+  args: { id: v.id("tasks") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
 
 export const list = query({
   args: {
@@ -260,5 +268,112 @@ export const moveStatus = mutation({
     });
 
     return args.taskId;
+  },
+});
+
+/**
+ * 状態遷移の不変条件を守る唯一のエントリポイント。
+ *
+ * 許可される遷移:
+ *   todo             → in_progress | blocked | canceled
+ *   in_progress      → todo | blocked | waiting_decision | done | canceled
+ *   blocked          → todo | in_progress | canceled
+ *   waiting_decision → in_progress | blocked | done | canceled
+ *   done / canceled  → todo  (再オープンのみ許可)
+ *
+ * 副作用:
+ *   → waiting_decision 遷移時: Decision レコード（decision_needed）を自動生成し
+ *     task.latestDecisionId に紐付ける
+ *   → blocked 遷移時: reason が指定されていれば task.description に追記する
+ *
+ * @returns { taskId, decisionId? }
+ */
+export const transitionTaskStatus = mutation({
+  args: {
+    taskId: v.id("tasks"),
+    newStatus: v.union(
+      v.literal("todo"), v.literal("in_progress"), v.literal("blocked"),
+      v.literal("waiting_decision"), v.literal("done"), v.literal("canceled"),
+    ),
+    // blocked 遷移時に理由を記録（description に追記）
+    blockedReason: v.optional(v.string()),
+    // waiting_decision 遷移時の Decision タイトル（省略時は自動生成）
+    decisionTitle: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error(`Task not found: ${args.taskId}`);
+
+    // --- 遷移可否チェック ---
+    const ALLOWED: Record<string, string[]> = {
+      todo:             ["in_progress", "blocked", "canceled"],
+      in_progress:      ["todo", "blocked", "waiting_decision", "done", "canceled"],
+      blocked:          ["todo", "in_progress", "canceled"],
+      waiting_decision: ["in_progress", "blocked", "done", "canceled"],
+      done:             ["todo"],
+      canceled:         ["todo"],
+    };
+    const allowed = ALLOWED[task.status] ?? [];
+    if (!allowed.includes(args.newStatus)) {
+      throw new Error(
+        `遷移不可: ${task.status} → ${args.newStatus}。` +
+        `許可されている遷移: [${allowed.join(", ")}]`
+      );
+    }
+
+    const now = Date.now();
+    const patch: Record<string, unknown> = { status: args.newStatus, updatedAt: now };
+
+    // --- blocked 副作用: reason を description に追記 ---
+    if (args.newStatus === "blocked" && args.blockedReason) {
+      const newDesc = appendReasonNote(
+        task.description,
+        "BLOCKED理由",
+        args.blockedReason,
+        { now },
+      );
+      if (newDesc !== task.description) {
+        patch.description = newDesc;
+      }
+    }
+
+    let decisionId: Id<"decisions"> | undefined;
+
+    // --- waiting_decision 副作用: Decision を自動生成 ---
+    if (args.newStatus === "waiting_decision") {
+      const title =
+        args.decisionTitle ??
+        `判断が必要: ${task.title}`;
+
+      decisionId = await ctx.db.insert("decisions", {
+        type: "decision_needed",
+        status: "pending",
+        title,
+        taskId: args.taskId,
+        goalId: task.goalId,
+        createdAt: now,
+        updatedAt: now,
+      });
+      patch.latestDecisionId = decisionId;
+
+      await appendActivity(ctx, {
+        type: "decision_created",
+        goalId: task.goalId,
+        taskId: args.taskId,
+        decisionId,
+        message: `Decision created: ${title}`,
+      });
+    }
+
+    await ctx.db.patch(args.taskId, patch);
+
+    await appendActivity(ctx, {
+      type: "task_updated",
+      goalId: task.goalId,
+      taskId: args.taskId,
+      message: `Task status: ${task.status} → ${args.newStatus} (${task.title})`,
+    });
+
+    return { taskId: args.taskId, decisionId };
   },
 });

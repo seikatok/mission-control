@@ -6,6 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -42,7 +43,7 @@ export default function OutputsPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Outputs"
-        description="Artifacts and results produced by agents"
+        description="エージェントが生成した成果物"
         action={
           <Button onClick={() => router.push("/outputs/new")} className="bg-blue-600 hover:bg-blue-700">
             + New Output
@@ -52,19 +53,19 @@ export default function OutputsPage() {
       <div className="flex gap-3 px-6 py-3 border-b border-slate-800">
         <Select value={goalId} onValueChange={setGoalId}>
           <SelectTrigger className="w-48 bg-slate-900 border-slate-700 text-sm">
-            <SelectValue placeholder="All Goals" />
+            <SelectValue placeholder="すべてのゴール" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Goals</SelectItem>
+            <SelectItem value="all">すべてのゴール</SelectItem>
             {goals?.map((g) => <SelectItem key={g._id} value={g._id}>{g.title}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={type} onValueChange={setType}>
           <SelectTrigger className="w-40 bg-slate-900 border-slate-700 text-sm">
-            <SelectValue placeholder="All Types" />
+            <SelectValue placeholder="すべての種類" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">すべての種類</SelectItem>
             {Object.entries(OUTPUT_TYPE_LABELS).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
             ))}
@@ -73,9 +74,21 @@ export default function OutputsPage() {
       </div>
       <div className="flex-1 overflow-y-auto p-6">
         {!outputs ? (
-          <p className="text-sm text-slate-500">Loading...</p>
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-5 w-16" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : outputs.length === 0 ? (
-          <EmptyState title="No outputs found" action={<Button onClick={() => router.push("/outputs/new")} className="bg-blue-600 hover:bg-blue-700">New Output</Button>} />
+          <EmptyState title="成果物はまだありません" action={<Button onClick={() => router.push("/outputs/new")} className="bg-blue-600 hover:bg-blue-700">New Output</Button>} />
         ) : (
           <div className="space-y-3">
             {outputs.map((out) => (
@@ -89,7 +102,7 @@ export default function OutputsPage() {
                       />
                       <h3 className="font-medium text-slate-100">{out.title}</h3>
                     </div>
-                    {out.summary && <p className="mt-1 text-sm text-slate-400 line-clamp-2">{out.summary}</p>}
+                    {out.summary && <p className="mt-1 text-sm text-slate-400 line-clamp-3">{out.summary}</p>}
                     {out.artifacts && out.artifacts.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {out.artifacts.map((a, i) => (

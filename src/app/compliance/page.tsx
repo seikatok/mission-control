@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,7 +43,7 @@ export default function CompliancePage() {
     setResolving(true);
     try {
       await resolveEvent({ complianceEventId: resolveTarget, note: resolveNote || undefined });
-      toast.success("Event resolved");
+      toast.success("イベントを解決しました");
       setResolveTarget(null);
       setResolveNote("");
     } catch (err) {
@@ -60,7 +61,7 @@ export default function CompliancePage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Compliance" description="Policy violations and audit log" />
+      <PageHeader title="Compliance" description="ポリシー違反と監査ログ" />
       <div className="flex gap-3 px-6 py-3 border-b border-slate-800">
         <Select value={showResolved} onValueChange={(v) => setShowResolved(v as typeof showResolved)}>
           <SelectTrigger className="w-36 bg-slate-900 border-slate-700 text-sm">
@@ -87,9 +88,21 @@ export default function CompliancePage() {
       </div>
       <div className="flex-1 overflow-y-auto p-6">
         {!sortedEvents ? (
-          <p className="text-sm text-slate-500">Loading...</p>
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-5 w-16" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : sortedEvents.length === 0 ? (
-          <EmptyState title="No events found" description="No compliance events match the current filter." />
+          <EmptyState title="イベントが見つかりません" description="現在のフィルタに一致するコンプライアンスイベントはありません" />
         ) : (
           <div className="space-y-2">
             {sortedEvents.map((ev) => (
@@ -136,15 +149,15 @@ export default function CompliancePage() {
 
       <Dialog open={!!resolveTarget} onOpenChange={(o) => { if (!o) { setResolveTarget(null); setResolveNote(""); } }}>
         <DialogContent className="bg-slate-900 border-slate-700">
-          <DialogHeader><DialogTitle className="text-slate-100">Resolve Event</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-slate-100">イベントを解決</DialogTitle></DialogHeader>
           <div>
-            <Label className="text-slate-300">Note (optional)</Label>
+            <Label className="text-slate-300">メモ（任意）</Label>
             <Textarea value={resolveNote} onChange={(e) => setResolveNote(e.target.value)} rows={2} className="mt-1 bg-slate-800 border-slate-700" />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setResolveTarget(null); setResolveNote(""); }} className="text-slate-400">Cancel</Button>
+            <Button variant="ghost" onClick={() => { setResolveTarget(null); setResolveNote(""); }} className="text-slate-400">キャンセル</Button>
             <Button onClick={handleResolve} disabled={resolving} className="bg-green-600 hover:bg-green-700">
-              {resolving ? "Resolving..." : "Mark Resolved"}
+              {resolving ? "処理中..." : "解決済みにする"}
             </Button>
           </DialogFooter>
         </DialogContent>

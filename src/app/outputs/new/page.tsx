@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { PageHeader } from "@/components/layout/page-header";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { OUTPUT_TYPE_LABELS } from "@/lib/constants";
@@ -20,17 +20,27 @@ interface Artifact {
   note: string;
 }
 
-export default function NewOutputPage() {
+function NewOutputForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const createOutput = useMutation(api.outputs.create);
   const goals = useQuery(api.goals.list, {});
 
+  const initialGoalId = searchParams.get("goalId") ?? "_none";
+  const initialTaskId = searchParams.get("taskId") ?? "_none";
+
   const [title, setTitle] = useState("");
   const [type, setType] = useState("other");
-  const [goalId, setGoalId] = useState("_none");
+  const [goalId, setGoalId] = useState(initialGoalId);
+  const [taskId, setTaskId] = useState(initialTaskId);
   const [summary, setSummary] = useState("");
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const tasks = useQuery(
+    api.tasks.list,
+    goalId !== "_none" ? { goalId: goalId as Id<"goals"> } : "skip"
+  );
 
   function addArtifact() {
     setArtifacts((a) => [...a, { kind: "link", ref: "", note: "" }]);
@@ -44,6 +54,11 @@ export default function NewOutputPage() {
     setArtifacts((a) => a.filter((_, i) => i !== index));
   }
 
+  function handleGoalChange(newGoalId: string) {
+    setGoalId(newGoalId);
+    setTaskId("_none");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -52,6 +67,7 @@ export default function NewOutputPage() {
         title,
         type: type as "other",
         goalId: goalId !== "_none" ? goalId as Id<"goals"> : undefined,
+        taskId: taskId !== "_none" ? taskId as Id<"tasks"> : undefined,
         summary: summary || undefined,
         artifacts: artifacts.filter((a) => a.ref).map((a) => ({
           kind: a.kind,
@@ -59,7 +75,7 @@ export default function NewOutputPage() {
           note: a.note || undefined,
         })),
       });
-      toast.success("Output created");
+      toast.success("成果物を作成しました");
       router.push("/outputs");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create output");
@@ -70,16 +86,16 @@ export default function NewOutputPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="New Output" />
+      <PageHeader title="新規成果物" />
       <div className="flex-1 overflow-y-auto p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Title *</Label>
+            <Label>タイトル *</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} required className="mt-1 bg-slate-900 border-slate-700" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Type</Label>
+              <Label>種類</Label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger className="mt-1 bg-slate-900 border-slate-700">
                   <SelectValue />
@@ -92,8 +108,8 @@ export default function NewOutputPage() {
               </Select>
             </div>
             <div>
-              <Label>Goal</Label>
-              <Select value={goalId} onValueChange={setGoalId}>
+              <Label>ゴール</Label>
+              <Select value={goalId} onValueChange={handleGoalChange}>
                 <SelectTrigger className="mt-1 bg-slate-900 border-slate-700">
                   <SelectValue />
                 </SelectTrigger>
@@ -105,14 +121,32 @@ export default function NewOutputPage() {
             </div>
           </div>
           <div>
-            <Label>Summary</Label>
+            <Label>タスク</Label>
+            <Select
+              value={taskId}
+              onValueChange={setTaskId}
+              disabled={goalId === "_none"}
+            >
+              <SelectTrigger className="mt-1 bg-slate-900 border-slate-700">
+                <SelectValue placeholder={goalId === "_none" ? "ゴールを先に選択してください" : "— None —"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— None —</SelectItem>
+                {tasks?.map((t) => (
+                  <SelectItem key={t._id} value={t._id}>{t.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>サマリー</Label>
             <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} className="mt-1 bg-slate-900 border-slate-700" />
           </div>
           <div>
             <div className="flex items-center justify-between">
-              <Label>Artifacts</Label>
+              <Label>アーティファクト</Label>
               <Button type="button" variant="outline" size="sm" onClick={addArtifact} className="border-slate-700 text-slate-300">
-                + Add Artifact
+                + 追加
               </Button>
             </div>
             {artifacts.map((a, i) => (
@@ -126,11 +160,19 @@ export default function NewOutputPage() {
           </div>
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
-              {isSubmitting ? "Creating..." : "Create Output"}
+              {isSubmitting ? "作成中..." : "成果物を作成"}
             </Button>
           </div>
         </form>
       </div>
     </div>
+  );
+}
+
+export default function NewOutputPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-400">読み込み中...</div>}>
+      <NewOutputForm />
+    </Suspense>
   );
 }

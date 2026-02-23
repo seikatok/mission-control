@@ -30,15 +30,17 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-slate-100`}>
         <ConvexClientProvider>
-          <DefaultUserProvider>
-            <div className="flex h-screen overflow-hidden">
-              <Sidebar />
-              <main className="flex-1 overflow-y-auto">
+          {/* Sidebar は静的ナビゲーションのみ。ユーザーデータ待ちでブロックしない */}
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto">
+              {/* DefaultUserProvider はコンテンツ領域だけをラップ */}
+              <DefaultUserProvider>
                 {children}
-              </main>
-            </div>
-            <Toaster />
-          </DefaultUserProvider>
+              </DefaultUserProvider>
+            </main>
+          </div>
+          <Toaster />
         </ConvexClientProvider>
       </body>
     </html>

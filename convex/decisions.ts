@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { appendActivity, validateString, validateOptionalString } from "./helpers";
+import { appendActivity, appendReasonNote, validateString, validateOptionalString } from "./helpers";
 
 export const list = query({
   args: {
@@ -139,6 +139,50 @@ export const resolve = mutation({
       resolvedAt: Date.now(),
       updatedAt: Date.now(),
     });
+
+    // ─── Task 副作用 ───
+    if (decision.taskId && args.action !== "request_changes") {
+      const task = await ctx.db.get(decision.taskId);
+      if (task && task.status === "waiting_decision") {
+        const now = Date.now();
+        if (args.action === "approve") {
+          await ctx.db.patch(decision.taskId, {
+            status: "in_progress",
+            updatedAt: now,
+          });
+          await appendActivity(ctx, {
+            type: "task_updated",
+            goalId: task.goalId,
+            taskId: decision.taskId,
+            decisionId: args.decisionId,
+            message: `Task auto-transitioned: waiting_decision → in_progress (decision approved)`,
+          });
+        } else if (args.action === "reject") {
+          const rejectionNote = note
+            ? `判断却下: ${note}`
+            : `判断却下: ${decision.title}`;
+          const newDesc = appendReasonNote(
+            task.description,
+            "REJECTED",
+            rejectionNote,
+            { refId: args.decisionId, now },
+          );
+          await ctx.db.patch(decision.taskId, {
+            status: "blocked",
+            description: newDesc,
+            updatedAt: now,
+          });
+          await appendActivity(ctx, {
+            type: "task_updated",
+            goalId: task.goalId,
+            taskId: decision.taskId,
+            decisionId: args.decisionId,
+            message: `Task auto-transitioned: waiting_decision → blocked (decision rejected)`,
+          });
+        }
+      }
+    }
+    // ─── END Task 副作用 ───
 
     await appendActivity(ctx, {
       type: "decision_resolved",

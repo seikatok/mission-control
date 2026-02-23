@@ -25,9 +25,15 @@ interface ResolveDialogProps {
 }
 
 const ACTION_LABELS = {
-  approve: "Approve",
-  reject: "Reject",
-  request_changes: "Request Changes",
+  approve: "承認",
+  reject: "却下",
+  request_changes: "修正依頼",
+};
+
+const ACTION_TOAST: Record<string, string> = {
+  approve: "承認しました",
+  reject: "却下しました",
+  request_changes: "修正を依頼しました",
 };
 
 const ACTION_STYLES = {
@@ -52,7 +58,7 @@ export function ResolveDialog({ decisionId, action, open, onClose }: ResolveDial
         resolvedByUserId: defaultUserId,
         note: note || undefined,
       });
-      toast.success(`Decision ${ACTION_LABELS[action].toLowerCase()}d`);
+      toast.success(ACTION_TOAST[action]);
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to resolve decision");
@@ -69,24 +75,25 @@ export function ResolveDialog({ decisionId, action, open, onClose }: ResolveDial
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label className="text-slate-300">Note (optional)</Label>
+            <Label className="text-slate-300">メモ（任意）</Label>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
-              placeholder="Add a note about this decision..."
+              placeholder="判断に関するメモを入力..."
               className="mt-1 bg-slate-800 border-slate-700 text-slate-100"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-slate-400">Cancel</Button>
+          <Button variant="ghost" onClick={onClose} className="text-slate-400">キャンセル</Button>
           <Button
+            data-testid="resolve-confirm-btn"
             onClick={handleResolve}
             disabled={isSubmitting}
             className={ACTION_STYLES[action]}
           >
-            {isSubmitting ? "Saving..." : ACTION_LABELS[action]}
+            {isSubmitting ? "処理中..." : ACTION_LABELS[action]}
           </Button>
         </DialogFooter>
       </DialogContent>

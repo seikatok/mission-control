@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { GOAL_STATUS_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "@/lib/constants";
@@ -33,7 +34,7 @@ export default function GoalsPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Goals"
-        description="Manage objectives and outcomes"
+        description="目標とアウトカムの管理"
         action={
           <Button onClick={() => router.push("/goals/new")} className="bg-blue-600 hover:bg-blue-700">
             + New Goal
@@ -66,11 +67,23 @@ export default function GoalsPage() {
       </div>
       <div className="flex-1 overflow-y-auto p-6">
         {!goals ? (
-          <p className="text-sm text-slate-500">Loading...</p>
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-5 w-16" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : goals.length === 0 ? (
           <EmptyState
-            title="No goals found"
-            description="Create your first goal to get started"
+            title="ゴールが見つかりません"
+            description="最初のゴールを作成してタスクを追加しましょう"
             action={<Button onClick={() => router.push("/goals/new")} className="bg-blue-600 hover:bg-blue-700">New Goal</Button>}
           />
         ) : (

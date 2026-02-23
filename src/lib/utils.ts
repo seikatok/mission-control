@@ -18,3 +18,13 @@ export function timeAgo(ms: number): string {
   return formatDistanceToNow(new Date(ms), { addSuffix: true })
 }
 
+export function formatAge(ms: number): string {
+  if (ms < 0) return "—";
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 60) return `${minutes}分`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間`;
+  const days = Math.floor(hours / 24);
+  return `${days}日`;
+}
+

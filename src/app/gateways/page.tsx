@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
@@ -20,7 +21,7 @@ export default function GatewaysPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Gateways"
-        description="Execution environments for agent runs"
+        description="エージェント実行環境の管理"
         action={
           <Button onClick={() => router.push("/gateways/new")} className="bg-blue-600 hover:bg-blue-700">
             + New Gateway
@@ -29,9 +30,21 @@ export default function GatewaysPage() {
       />
       <div className="flex-1 overflow-y-auto p-6">
         {!gateways ? (
-          <p className="text-sm text-slate-500">Loading...</p>
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-5 w-16" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : gateways.length === 0 ? (
-          <EmptyState title="No gateways yet" action={<Button onClick={() => router.push("/gateways/new")} className="bg-blue-600 hover:bg-blue-700">New Gateway</Button>} />
+          <EmptyState title="ゲートウェイはまだありません" action={<Button onClick={() => router.push("/gateways/new")} className="bg-blue-600 hover:bg-blue-700">New Gateway</Button>} />
         ) : (
           <div className="space-y-3">
             {gateways.map((gw) => (

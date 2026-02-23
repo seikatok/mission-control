@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,7 +66,7 @@ export default function TeamPage() {
         },
         allowedSkillIds: [],
       });
-      toast.success("Template created");
+      toast.success("テンプレートを作成しました");
       setShowTemplateDialog(false);
       setTName(""); setTDesc("");
     } catch (err) {
@@ -85,7 +86,7 @@ export default function TeamPage() {
         templateId: aTemplateId as Id<"agentTemplates">,
         gatewayId: aGatewayId !== "_none" ? aGatewayId as Id<"gateways"> : undefined,
       });
-      toast.success("Agent created");
+      toast.success("エージェントを作成しました");
       setShowAgentDialog(false);
       setAName(""); setATemplateId(""); setAGatewayId("_none");
     } catch (err) {
@@ -103,7 +104,7 @@ export default function TeamPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Team"
-        description="Agent templates and running agents"
+        description="エージェントテンプレートと稼働エージェント"
         action={
           tab === "templates" ? (
             <Button onClick={() => setShowTemplateDialog(true)} className="bg-blue-600 hover:bg-blue-700">
@@ -124,8 +125,22 @@ export default function TeamPage() {
         </TabsList>
 
         <TabsContent value="agents" className="flex-1 overflow-y-auto p-6 mt-0">
-          {!agents ? <p className="text-sm text-slate-500">Loading...</p> : agents.length === 0 ? (
-            <EmptyState title="No agents yet" action={<Button onClick={() => setShowAgentDialog(true)} className="bg-blue-600 hover:bg-blue-700">New Agent</Button>} />
+          {!agents ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="h-5 w-16" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : agents.length === 0 ? (
+            <EmptyState title="エージェントはまだありません" action={<Button onClick={() => setShowAgentDialog(true)} className="bg-blue-600 hover:bg-blue-700">New Agent</Button>} />
           ) : (
             <div className="space-y-2">
               {agents.map((agent) => {
@@ -173,8 +188,22 @@ export default function TeamPage() {
         </TabsContent>
 
         <TabsContent value="templates" className="flex-1 overflow-y-auto p-6 mt-0">
-          {!templates ? <p className="text-sm text-slate-500">Loading...</p> : templates.length === 0 ? (
-            <EmptyState title="No templates yet" action={<Button onClick={() => setShowTemplateDialog(true)} className="bg-blue-600 hover:bg-blue-700">New Template</Button>} />
+          {!templates ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="h-5 w-16" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : templates.length === 0 ? (
+            <EmptyState title="テンプレートはまだありません" action={<Button onClick={() => setShowTemplateDialog(true)} className="bg-blue-600 hover:bg-blue-700">New Template</Button>} />
           ) : (
             <div className="space-y-2">
               {templates.map((tmpl) => (
@@ -199,16 +228,16 @@ export default function TeamPage() {
       {/* Template Dialog */}
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
         <DialogContent className="bg-slate-900 border-slate-700">
-          <DialogHeader><DialogTitle className="text-slate-100">New Template</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-slate-100">新規テンプレート</DialogTitle></DialogHeader>
           <form onSubmit={handleCreateTemplate} className="space-y-3">
-            <div><Label>Name *</Label><Input value={tName} onChange={(e) => setTName(e.target.value)} required className="mt-1 bg-slate-800 border-slate-700" /></div>
-            <div><Label>Description</Label><Textarea value={tDesc} onChange={(e) => setTDesc(e.target.value)} rows={2} className="mt-1 bg-slate-800 border-slate-700" /></div>
+            <div><Label>名前 *</Label><Input value={tName} onChange={(e) => setTName(e.target.value)} required className="mt-1 bg-slate-800 border-slate-700" /></div>
+            <div><Label>説明</Label><Textarea value={tDesc} onChange={(e) => setTDesc(e.target.value)} rows={2} className="mt-1 bg-slate-800 border-slate-700" /></div>
             <div className="space-y-2">
-              <Label>Policy</Label>
+              <Label>ポリシー</Label>
               {[
-                { label: "Allow External Send", value: tAllowExternal, setter: setTAllowExternal },
-                { label: "Allow File Write Outside Workspace", value: tAllowFileWrite, setter: setTAllowFileWrite },
-                { label: "Allow Dangerous Commands", value: tAllowDangerous, setter: setTAllowDangerous },
+                { label: "外部送信を許可", value: tAllowExternal, setter: setTAllowExternal },
+                { label: "ワークスペース外への書き込みを許可", value: tAllowFileWrite, setter: setTAllowFileWrite },
+                { label: "危険なコマンドを許可", value: tAllowDangerous, setter: setTAllowDangerous },
               ].map(({ label, value, setter }) => (
                 <label key={label} className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={value} onChange={(e) => setter(e.target.checked)} className="rounded" />
@@ -217,8 +246,8 @@ export default function TeamPage() {
               ))}
             </div>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setShowTemplateDialog(false)} className="text-slate-400">Cancel</Button>
-              <Button type="submit" disabled={tSubmitting} className="bg-blue-600 hover:bg-blue-700">{tSubmitting ? "Creating..." : "Create"}</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowTemplateDialog(false)} className="text-slate-400">キャンセル</Button>
+              <Button type="submit" disabled={tSubmitting} className="bg-blue-600 hover:bg-blue-700">{tSubmitting ? "作成中..." : "作成"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -227,18 +256,18 @@ export default function TeamPage() {
       {/* Agent Dialog */}
       <Dialog open={showAgentDialog} onOpenChange={setShowAgentDialog}>
         <DialogContent className="bg-slate-900 border-slate-700">
-          <DialogHeader><DialogTitle className="text-slate-100">New Agent</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-slate-100">新規エージェント</DialogTitle></DialogHeader>
           <form onSubmit={handleCreateAgent} className="space-y-3">
-            <div><Label>Name *</Label><Input value={aName} onChange={(e) => setAName(e.target.value)} required className="mt-1 bg-slate-800 border-slate-700" /></div>
+            <div><Label>名前 *</Label><Input value={aName} onChange={(e) => setAName(e.target.value)} required className="mt-1 bg-slate-800 border-slate-700" /></div>
             <div>
-              <Label>Template *</Label>
+              <Label>テンプレート *</Label>
               <Select value={aTemplateId} onValueChange={setATemplateId}>
                 <SelectTrigger className="mt-1 bg-slate-800 border-slate-700"><SelectValue placeholder="Select template..." /></SelectTrigger>
                 <SelectContent>{templates?.map((t) => <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Gateway</Label>
+              <Label>ゲートウェイ</Label>
               <Select value={aGatewayId} onValueChange={setAGatewayId}>
                 <SelectTrigger className="mt-1 bg-slate-800 border-slate-700"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -248,8 +277,8 @@ export default function TeamPage() {
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setShowAgentDialog(false)} className="text-slate-400">Cancel</Button>
-              <Button type="submit" disabled={aSubmitting} className="bg-blue-600 hover:bg-blue-700">{aSubmitting ? "Creating..." : "Create"}</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowAgentDialog(false)} className="text-slate-400">キャンセル</Button>
+              <Button type="submit" disabled={aSubmitting} className="bg-blue-600 hover:bg-blue-700">{aSubmitting ? "作成中..." : "作成"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

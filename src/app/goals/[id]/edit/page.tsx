@@ -18,8 +18,8 @@ export default function EditGoalPage() {
   const updateGoal = useMutation(api.goals.update);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (goal === undefined) return <div className="p-6 text-sm text-slate-400">Loading...</div>;
-  if (goal === null) return <div className="p-6 text-sm text-slate-400">Goal not found</div>;
+  if (goal === undefined) return <div className="p-6 text-sm text-slate-400">読み込み中...</div>;
+  if (goal === null) return <div className="p-6 text-sm text-slate-400">ゴールが見つかりません</div>;
 
   async function handleSubmit(values: GoalFormValues) {
     setIsSubmitting(true);
@@ -43,7 +43,7 @@ export default function EditGoalPage() {
         })),
         tags: tags && tags.length > 0 ? tags : undefined,
       });
-      toast.success("Goal updated");
+      toast.success("ゴールを更新しました");
       router.push(`/goals/${goalId}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update goal");
@@ -54,7 +54,7 @@ export default function EditGoalPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Edit Goal" />
+      <PageHeader title="ゴール編集" />
       <div className="flex-1 overflow-y-auto p-6 max-w-2xl">
         <GoalForm
           defaultValues={{
@@ -69,7 +69,7 @@ export default function EditGoalPage() {
           }}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          submitLabel="Update Goal"
+          submitLabel="ゴールを更新"
         />
       </div>
     </div>

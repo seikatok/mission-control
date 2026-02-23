@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -10,48 +11,85 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { TASK_STATUS_LABELS, KANBAN_COLUMNS } from "@/lib/constants";
+import { TASK_STATUS_LABELS } from "@/lib/constants";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
+import { BlockedReasonDialog } from "./blocked-reason-dialog";
 
 interface MoveStatusMenuProps {
   taskId: Id<"tasks">;
   currentStatus: string;
 }
 
-const ALL_STATUSES = [...KANBAN_COLUMNS, "canceled"] as const;
+const ALLOWED: Record<string, string[]> = {
+  todo: ["in_progress", "blocked", "canceled"],
+  in_progress: ["todo", "blocked", "waiting_decision", "done", "canceled"],
+  blocked: ["todo", "in_progress", "canceled"],
+  waiting_decision: ["in_progress", "blocked", "done", "canceled"],
+  done: ["todo"],
+  canceled: ["todo"],
+};
 
 export function MoveStatusMenu({ taskId, currentStatus }: MoveStatusMenuProps) {
-  const moveStatus = useMutation(api.tasks.moveStatus);
+  const transitionStatus = useMutation(api.tasks.transitionTaskStatus);
+  const [blockedDialogOpen, setBlockedDialogOpen] = useState(false);
 
-  async function handleMove(newStatus: typeof ALL_STATUSES[number]) {
+  const allowedStatuses = ALLOWED[currentStatus] ?? [];
+
+  async function handleMove(newStatus: string, blockedReason?: string) {
     try {
-      await moveStatus({ taskId, newStatus });
+      await transitionStatus({
+        taskId,
+        newStatus: newStatus as "todo" | "in_progress" | "blocked" | "waiting_decision" | "done" | "canceled",
+        blockedReason: blockedReason || undefined,
+      });
+      if (newStatus === "waiting_decision") {
+        toast.success("判断リクエストを自動作成しました");
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to move task");
+      toast.error(err instanceof Error ? err.message : "ステータス変更に失敗しました");
+    }
+  }
+
+  function handleMenuSelect(newStatus: string) {
+    if (newStatus === "blocked") {
+      setBlockedDialogOpen(true);
+    } else {
+      handleMove(newStatus);
     }
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-6 text-xs text-slate-400 hover:text-slate-200 px-1">
-          {TASK_STATUS_LABELS[currentStatus] ?? currentStatus}
-          <ChevronDown className="ml-1 h-3 w-3" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="bg-slate-900 border-slate-700">
-        {ALL_STATUSES.map((s) => (
-          <DropdownMenuItem
-            key={s}
-            disabled={s === currentStatus}
-            onClick={() => handleMove(s)}
-            className="text-slate-200 focus:bg-slate-800 cursor-pointer"
-          >
-            {TASK_STATUS_LABELS[s] ?? s}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button data-testid="move-status-trigger" variant="ghost" size="sm" className="h-6 text-xs text-slate-400 hover:text-slate-200 px-1">
+            {TASK_STATUS_LABELS[currentStatus] ?? currentStatus}
+            <ChevronDown className="ml-1 h-3 w-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="bg-slate-900 border-slate-700">
+          {allowedStatuses.map((s) => (
+            <DropdownMenuItem
+              key={s}
+              data-testid={`status-option-${s}`}
+              onClick={() => handleMenuSelect(s)}
+              className="text-slate-200 focus:bg-slate-800 cursor-pointer"
+            >
+              {TASK_STATUS_LABELS[s] ?? s}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <BlockedReasonDialog
+        open={blockedDialogOpen}
+        onConfirm={(reason) => {
+          setBlockedDialogOpen(false);
+          handleMove("blocked", reason || undefined);
+        }}
+        onCancel={() => setBlockedDialogOpen(false)}
+      />
+    </>
   );
 }

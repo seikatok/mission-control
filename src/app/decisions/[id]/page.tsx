@@ -21,8 +21,14 @@ export default function DecisionDetailPage() {
 
   const [resolveAction, setResolveAction] = useState<"approve" | "reject" | "request_changes" | null>(null);
 
-  if (decision === undefined) return <div className="p-6 text-sm text-slate-400">Loading...</div>;
-  if (decision === null) return <div className="p-6 text-sm text-slate-400">Decision not found</div>;
+  if (decision === undefined) return (
+    <div className="p-6 space-y-4 max-w-3xl animate-pulse">
+      <div className="h-6 w-48 bg-slate-800 rounded" />
+      <div className="h-4 w-32 bg-slate-800 rounded" />
+      <div className="h-20 w-full bg-slate-800 rounded" />
+    </div>
+  );
+  if (decision === null) return <div className="p-6 text-sm text-slate-400">判断事項が見つかりません</div>;
 
   const isPending = decision.status === "pending";
 
@@ -32,7 +38,7 @@ export default function DecisionDetailPage() {
         title={decision.title}
         action={
           <Button variant="ghost" onClick={() => router.back()} className="text-slate-400">
-            ← Back
+            ← 戻る
           </Button>
         }
       />
@@ -54,7 +60,7 @@ export default function DecisionDetailPage() {
         {/* Options */}
         {decision.options && decision.options.length > 0 && (
           <div>
-            <h2 className="text-sm font-medium text-slate-400 mb-2">Options</h2>
+            <h2 className="text-sm font-medium text-slate-400 mb-2">選択肢</h2>
             <div className="space-y-2">
               {decision.options.map((opt) => (
                 <div
@@ -64,11 +70,11 @@ export default function DecisionDetailPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-slate-100">{opt.label}</span>
                     {decision.recommendation === opt.key && (
-                      <span className="text-xs bg-blue-600 text-white rounded px-1.5 py-0.5">Recommended</span>
+                      <span className="text-xs bg-blue-600 text-white rounded px-1.5 py-0.5">推奨</span>
                     )}
                   </div>
                   {opt.details && <p className="mt-1 text-sm text-slate-400">{opt.details}</p>}
-                  {opt.risk && <p className="mt-0.5 text-xs text-orange-400">Risk: {opt.risk}</p>}
+                  {opt.risk && <p className="mt-0.5 text-xs text-orange-400">リスク: {opt.risk}</p>}
                 </div>
               ))}
             </div>
@@ -78,11 +84,11 @@ export default function DecisionDetailPage() {
         {/* Execution Preview */}
         {decision.executionPreview && (
           <div>
-            <h2 className="text-sm font-medium text-slate-400 mb-2">Execution Preview</h2>
+            <h2 className="text-sm font-medium text-slate-400 mb-2">実行プレビュー</h2>
             <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 space-y-3 font-mono text-sm">
               {decision.executionPreview.commands && decision.executionPreview.commands.length > 0 && (
                 <div>
-                  <p className="text-xs text-slate-500 mb-1">Commands:</p>
+                  <p className="text-xs text-slate-500 mb-1">コマンド:</p>
                   {decision.executionPreview.commands.map((cmd, i) => (
                     <p key={i} className="text-green-400">$ {cmd}</p>
                   ))}
@@ -90,7 +96,7 @@ export default function DecisionDetailPage() {
               )}
               {decision.executionPreview.fileWrites && decision.executionPreview.fileWrites.length > 0 && (
                 <div>
-                  <p className="text-xs text-slate-500 mb-1">File Writes:</p>
+                  <p className="text-xs text-slate-500 mb-1">ファイル書き込み:</p>
                   {decision.executionPreview.fileWrites.map((fw, i) => (
                     <p key={i} className="text-yellow-400">write: {fw.path} {fw.note && `(${fw.note})`}</p>
                   ))}
@@ -98,7 +104,7 @@ export default function DecisionDetailPage() {
               )}
               {decision.executionPreview.externalActions && decision.executionPreview.externalActions.length > 0 && (
                 <div>
-                  <p className="text-xs text-slate-500 mb-1">External Actions:</p>
+                  <p className="text-xs text-slate-500 mb-1">外部アクション:</p>
                   {decision.executionPreview.externalActions.map((ea, i) => (
                     <p key={i} className="text-orange-400">{ea.kind} {ea.note && `- ${ea.note}`}</p>
                   ))}
@@ -111,7 +117,7 @@ export default function DecisionDetailPage() {
         {/* Resolution Note */}
         {decision.resolutionNote && (
           <div className="rounded-lg border border-slate-800 bg-slate-900 p-3">
-            <p className="text-xs text-slate-500 mb-1">Resolution Note</p>
+            <p className="text-xs text-slate-500 mb-1">承認メモ</p>
             <p className="text-sm text-slate-300">{decision.resolutionNote}</p>
             {decision.resolvedAt && <TimeAgo ms={decision.resolvedAt} className="text-xs text-slate-500 mt-1" />}
           </div>
@@ -121,22 +127,23 @@ export default function DecisionDetailPage() {
         {isPending && (
           <div className="flex gap-3 pt-2">
             <Button
+              data-testid="decision-action-approve"
               onClick={() => setResolveAction("approve")}
               className="bg-green-600 hover:bg-green-700"
             >
-              Approve
+              承認
             </Button>
             <Button
               onClick={() => setResolveAction("reject")}
               className="bg-red-600 hover:bg-red-700"
             >
-              Reject
+              却下
             </Button>
             <Button
               onClick={() => setResolveAction("request_changes")}
               className="bg-orange-600 hover:bg-orange-700"
             >
-              Request Changes
+              修正依頼
             </Button>
           </div>
         )}

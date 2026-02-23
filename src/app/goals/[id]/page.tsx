@@ -13,8 +13,6 @@ import {
   PRIORITY_LABELS,
   PRIORITY_COLORS,
   OUTPUT_TYPE_LABELS,
-  TASK_STATUS_LABELS,
-  TASK_STATUS_COLORS,
   DECISION_STATUS_LABELS,
   DECISION_STATUS_COLORS,
 } from "@/lib/constants";
@@ -37,8 +35,15 @@ export default function GoalDetailPage() {
   const outputs = useQuery(api.outputs.list, { goalId, limit: 5 });
   const decisions = useQuery(api.decisions.list, { status: "pending", limit: 5 });
 
-  if (goal === undefined) return <div className="p-6 text-sm text-slate-400">Loading...</div>;
-  if (goal === null) return <div className="p-6 text-sm text-slate-400">Goal not found</div>;
+  const tasks = useQuery(api.tasks.list, { goalId });
+
+  if (goal === undefined) return <div className="p-6 text-sm text-slate-400">読み込み中...</div>;
+  if (goal === null) return <div className="p-6 text-sm text-slate-400">ゴールが見つかりません</div>;
+
+  const totalTasks = tasks?.length ?? 0;
+  const doneTasks = tasks?.filter((t) => t.status === "done").length ?? 0;
+  const inProgressTasks = tasks?.filter((t) => t.status === "in_progress").length ?? 0;
+  const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   const goalDecisions = decisions?.filter((d) => d.goalId === goalId) ?? [];
 
@@ -52,7 +57,7 @@ export default function GoalDetailPage() {
             className="border-slate-700 text-slate-300"
             onClick={() => router.push(`/goals/${goalId}/edit`)}
           >
-            Edit
+            編集
           </Button>
         }
       />
@@ -74,7 +79,7 @@ export default function GoalDetailPage() {
           )}
           {goal.successMetrics && goal.successMetrics.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-slate-400 mb-1">Success Metrics</p>
+              <p className="text-xs font-medium text-slate-400 mb-1">成功指標</p>
               <div className="space-y-1">
                 {goal.successMetrics.map((m, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-slate-300">
@@ -88,13 +93,35 @@ export default function GoalDetailPage() {
           )}
         </div>
 
+        {/* KPI Summary */}
+        {tasks && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-center">
+              <p className="text-2xl font-bold text-slate-100">{completionRate}%</p>
+              <p className="text-xs text-slate-500">タスク完了率</p>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-center">
+              <p className="text-2xl font-bold text-blue-400">{inProgressTasks}</p>
+              <p className="text-xs text-slate-500">進行中</p>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-center">
+              <p className="text-2xl font-bold text-yellow-400">{goalDecisions.length}</p>
+              <p className="text-xs text-slate-500">未解決の判断</p>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-center">
+              <p className="text-2xl font-bold text-slate-100">{totalTasks}</p>
+              <p className="text-xs text-slate-500">タスク合計</p>
+            </div>
+          </div>
+        )}
+
         {/* Boards & Tasks */}
         <div>
-          <h2 className="text-sm font-medium text-slate-400 mb-2">Boards</h2>
+          <h2 className="text-sm font-medium text-slate-400 mb-2">ボード</h2>
           {!boards ? (
             <p className="text-sm text-slate-500">Loading...</p>
           ) : boards.length === 0 ? (
-            <EmptyState title="No boards" description="A default board is created with each goal" />
+            <EmptyState title="ボードなし" description="ゴールごとにデフォルトのボードが作成されます" />
           ) : (
             <div className="space-y-2">
               {boards.map((board) => (
@@ -106,7 +133,7 @@ export default function GoalDetailPage() {
                     className="text-blue-400 hover:text-blue-300"
                     onClick={() => router.push(`/tasks?boardId=${board._id}`)}
                   >
-                    View Tasks →
+                    タスクを表示 →
                   </Button>
                 </div>
               ))}
@@ -116,9 +143,9 @@ export default function GoalDetailPage() {
 
         {/* Outputs */}
         <div>
-          <h2 className="text-sm font-medium text-slate-400 mb-2">Recent Outputs</h2>
+          <h2 className="text-sm font-medium text-slate-400 mb-2">最新の成果物</h2>
           {!outputs || outputs.length === 0 ? (
-            <EmptyState title="No outputs yet" />
+            <EmptyState title="成果物はまだありません" />
           ) : (
             <div className="space-y-2">
               {outputs.map((out) => (
@@ -134,9 +161,9 @@ export default function GoalDetailPage() {
 
         {/* Decisions */}
         <div>
-          <h2 className="text-sm font-medium text-slate-400 mb-2">Pending Decisions</h2>
+          <h2 className="text-sm font-medium text-slate-400 mb-2">承認待ちの判断</h2>
           {goalDecisions.length === 0 ? (
-            <EmptyState title="No pending decisions" />
+            <EmptyState title="承認待ちの判断はありません" />
           ) : (
             <div className="space-y-2">
               {goalDecisions.map((d) => (

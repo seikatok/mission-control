@@ -5,6 +5,7 @@ import { appendActivity, validateString, validateOptionalString } from "./helper
 export const list = query({
   args: {
     goalId: v.optional(v.id("goals")),
+    taskId: v.optional(v.id("tasks")),
     type: v.optional(v.union(
       v.literal("research"), v.literal("doc"), v.literal("code_diff"), v.literal("summary"),
       v.literal("linkset"), v.literal("image"), v.literal("video"), v.literal("architecture"),
@@ -14,6 +15,15 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 50, 200);
+    if (args.taskId) {
+      const outputs = await ctx.db
+        .query("outputs")
+        .withIndex("by_task_createdAt", (q) => q.eq("taskId", args.taskId!))
+        .order("desc")
+        .take(limit);
+      if (args.type) return outputs.filter((o) => o.type === args.type);
+      return outputs;
+    }
     if (args.goalId) {
       const outputs = await ctx.db
         .query("outputs")

@@ -17,7 +17,7 @@ export default function NewTaskPage() {
   const router = useRouter();
   const createTask = useMutation(api.tasks.create);
   const goals = useQuery(api.goals.list, {});
-  const boards = useQuery(api.boards.list);
+  const boards = useQuery(api.boards.list, {});
 
   const [title, setTitle] = useState("");
   const [goalId, setGoalId] = useState("");
@@ -30,7 +30,7 @@ export default function NewTaskPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!goalId) { toast.error("Please select a goal"); return; }
+    if (!goalId) { toast.error("ゴールを選択してください"); return; }
     setIsSubmitting(true);
     try {
       await createTask({
@@ -42,7 +42,7 @@ export default function NewTaskPage() {
         description: description || undefined,
         dueAt: dueAt ? new Date(dueAt).getTime() : undefined,
       });
-      toast.success("Task created");
+      toast.success("タスクを作成しました");
       router.push("/tasks");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create task");
@@ -53,18 +53,18 @@ export default function NewTaskPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="New Task" />
+      <PageHeader title="新規タスク" />
       <div className="flex-1 overflow-y-auto p-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Title *</Label>
+            <Label>タイトル *</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} required className="mt-1 bg-slate-900 border-slate-700" />
           </div>
           <div>
-            <Label>Goal *</Label>
+            <Label>ゴール *</Label>
             <Select value={goalId} onValueChange={setGoalId}>
               <SelectTrigger className="mt-1 bg-slate-900 border-slate-700">
-                <SelectValue placeholder="Select a goal..." />
+                <SelectValue placeholder="ゴールを選択..." />
               </SelectTrigger>
               <SelectContent>
                 {goals?.map((g) => (
@@ -74,13 +74,13 @@ export default function NewTaskPage() {
             </Select>
           </div>
           <div>
-            <Label>Board</Label>
+            <Label>ボード</Label>
             <Select value={boardId} onValueChange={setBoardId}>
               <SelectTrigger className="mt-1 bg-slate-900 border-slate-700">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_none">— No Board (Unassigned) —</SelectItem>
+                <SelectItem value="_none">— ボードなし (未割当) —</SelectItem>
                 {boards?.map((b) => (
                   <SelectItem key={b._id} value={b._id}>{b.name}</SelectItem>
                 ))}
@@ -89,7 +89,7 @@ export default function NewTaskPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Status</Label>
+              <Label>ステータス</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
                 <SelectTrigger className="mt-1 bg-slate-900 border-slate-700">
                   <SelectValue />
@@ -105,7 +105,7 @@ export default function NewTaskPage() {
               </Select>
             </div>
             <div>
-              <Label>Priority</Label>
+              <Label>優先度</Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as typeof priority)}>
                 <SelectTrigger className="mt-1 bg-slate-900 border-slate-700">
                   <SelectValue />
@@ -119,16 +119,16 @@ export default function NewTaskPage() {
             </div>
           </div>
           <div>
-            <Label>Due Date</Label>
+            <Label>期限</Label>
             <Input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className="mt-1 bg-slate-900 border-slate-700" />
           </div>
           <div>
-            <Label>Description</Label>
+            <Label>説明</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 bg-slate-900 border-slate-700" />
           </div>
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
-              {isSubmitting ? "Creating..." : "Create Task"}
+              {isSubmitting ? "作成中..." : "タスクを作成"}
             </Button>
           </div>
         </form>

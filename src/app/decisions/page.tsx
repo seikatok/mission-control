@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -10,21 +10,49 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { StaleBadge } from "@/components/decisions/stale-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DECISION_STATUS_LABELS, DECISION_STATUS_COLORS } from "@/lib/constants";
 import { TimeAgo } from "@/components/shared/time-ago";
 import { useDefaultUser } from "@/providers/default-user-provider";
 import { CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
-export default function DecisionsPage() {
+type DecisionStatus = "pending" | "approved" | "rejected" | "changes_requested" | "canceled";
+
+function DecisionsFilters({ status, onStatusChange }: { status: DecisionStatus; onStatusChange: (v: DecisionStatus) => void }) {
+  return (
+    <div className="flex gap-3 px-6 py-3 border-b border-slate-800">
+      <Select value={status} onValueChange={(v) => onStatusChange(v as DecisionStatus)}>
+        <SelectTrigger className="w-48 bg-slate-900 border-slate-700 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="pending">Pending</SelectItem>
+          <SelectItem value="approved">Approved</SelectItem>
+          <SelectItem value="rejected">Rejected</SelectItem>
+          <SelectItem value="changes_requested">Changes Requested</SelectItem>
+          <SelectItem value="canceled">Canceled</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function DecisionsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { defaultUserId } = useDefaultUser();
-  const [status, setStatus] = useState<"pending" | "approved" | "rejected" | "changes_requested" | "canceled">("pending");
   const [processingId, setProcessingId] = useState<Id<"decisions"> | null>(null);
 
-  const decisions = useQuery(api.decisions.list, { status, limit: 50 });
+  const statusFromUrl = (searchParams.get("status") ?? "pending") as DecisionStatus;
+  const decisions = useQuery(api.decisions.list, { status: statusFromUrl, limit: 50 });
   const resolve = useMutation(api.decisions.resolve);
+
+  function handleStatusChange(v: DecisionStatus) {
+    const params = new URLSearchParams();
+    params.set("status", v);
+    router.replace(`/decisions?${params.toString()}`);
+  }
 
   async function handleInlineResolve(
     e: React.MouseEvent,
@@ -46,22 +74,8 @@ export default function DecisionsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader title="Decisions" description="承認待ちの判断事項" />
-      <div className="flex gap-3 px-6 py-3 border-b border-slate-800">
-        <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-          <SelectTrigger className="w-48 bg-slate-900 border-slate-700 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="changes_requested">Changes Requested</SelectItem>
-            <SelectItem value="canceled">Canceled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <>
+      <DecisionsFilters status={statusFromUrl} onStatusChange={handleStatusChange} />
       <div className="flex-1 overflow-y-auto p-6">
         {!decisions ? (
           <div className="space-y-2">
@@ -144,6 +158,17 @@ export default function DecisionsPage() {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+export default function DecisionsPage() {
+  return (
+    <div className="flex flex-col h-full">
+      <PageHeader title="Decisions" description="承認待ちの判断事項" />
+      <Suspense fallback={<div className="h-8 w-full animate-pulse bg-slate-800 rounded mx-6 my-3" />}>
+        <DecisionsContent />
+      </Suspense>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -33,6 +34,8 @@ import {
   Users,
 } from "lucide-react";
 import { NotFound } from "@/components/shared/not-found";
+import Link from "next/link";
+import { toast } from "sonner";
 
 const EVENT_ICONS: Record<string, typeof Activity> = {
   goal_created: Target,
@@ -52,10 +55,15 @@ const EVENT_ICONS: Record<string, typeof Activity> = {
   system_seed: RefreshCw,
 };
 
+const MAX_OUTPUTS_PREVIEW = 3;
+
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const taskId = id as Id<"tasks">;
+
+  const transition = useMutation(api.tasks.transitionTaskStatus);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const task = useQuery(api.tasks.get, { id: taskId });
   const goal = useQuery(api.goals.get, task ? { id: task.goalId } : "skip");
@@ -93,6 +101,27 @@ export default function TaskDetailPage() {
         title={task.title}
         action={
           <div className="flex items-center gap-2">
+            {task.status === "in_progress" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/10"
+                disabled={isTransitioning}
+                onClick={async () => {
+                  setIsTransitioning(true);
+                  try {
+                    await transition({ taskId: task._id, newStatus: "waiting_decision" });
+                    toast.success("判断リクエストを送信しました");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "エラーが発生しました");
+                  } finally {
+                    setIsTransitioning(false);
+                  }
+                }}
+              >
+                判断リクエスト
+              </Button>
+            )}
             <MoveStatusMenu taskId={task._id} currentStatus={task.status} />
             <Button variant="ghost" onClick={() => router.back()} className="text-slate-400">
               ← 戻る
@@ -226,7 +255,7 @@ export default function TaskDetailPage() {
             />
           ) : (
             <div className="space-y-2">
-              {outputs.map((out) => (
+              {outputs.slice(0, MAX_OUTPUTS_PREVIEW).map((out) => (
                 <div
                   key={out._id}
                   className="flex items-center gap-3 rounded border border-slate-800 bg-slate-950 px-3 py-2"
@@ -238,6 +267,14 @@ export default function TaskDetailPage() {
                   <TimeAgo ms={out.createdAt} className="text-xs text-slate-500" />
                 </div>
               ))}
+              {outputs.length > MAX_OUTPUTS_PREVIEW && (
+                <Link
+                  href={`/outputs?taskId=${task._id}`}
+                  className="text-xs text-blue-400 hover:text-blue-300"
+                >
+                  すべて見る（{outputs.length}件）
+                </Link>
+              )}
             </div>
           )}
         </div>

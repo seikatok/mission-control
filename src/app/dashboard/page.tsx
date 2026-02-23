@@ -5,18 +5,35 @@ import { api } from "../../../convex/_generated/api";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { cn, formatAge, formatDate } from "@/lib/utils";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { CheckCircle } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const router = useRouter();
   const summary = useQuery(api.dashboard.getDashboardSummary, {});
 
+  const dashboardCTAs = (
+    <div className="flex gap-2">
+      <Link href="/tasks/new">
+        <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">+ タスク</Button>
+      </Link>
+      <Link href="/outputs/new">
+        <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">+ 成果物</Button>
+      </Link>
+      <Link href="/goals/new">
+        <Button size="sm" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">+ ゴール</Button>
+      </Link>
+    </div>
+  );
+
   if (!summary) {
     return (
       <div className="flex flex-col h-full">
-        <PageHeader title="ダッシュボード" description="AI運用の現在の状況" />
+        <PageHeader title="ダッシュボード" description="AI運用の現在の状況" action={dashboardCTAs} />
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="border-slate-800 bg-slate-900">
@@ -50,6 +67,12 @@ export default function DashboardPage() {
 
   const { kpi } = summary;
   const pendingCount = kpi.pendingDecisions.count;
+
+  const allClear =
+    kpi.pendingDecisions.count === 0 &&
+    kpi.waitingDecisionTasks.count === 0 &&
+    kpi.blockedTasks.count === 0 &&
+    kpi.overdueTasks.count === 0;
 
   const kpiCards = [
     {
@@ -92,11 +115,16 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="ダッシュボード" description="AI運用の現在の状況" />
+      <PageHeader title="ダッシュボード" description="AI運用の現在の状況" action={dashboardCTAs} />
 
       {/* KPI Cards */}
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {kpiCards.map((card) => (
+        {allClear ? (
+          <div className="col-span-4 flex flex-col items-center justify-center p-8 rounded-lg border border-green-500/20 bg-green-500/5 gap-2">
+            <CheckCircle className="h-8 w-8 text-green-500" />
+            <p className="text-sm font-medium text-green-400">すべてクリア！保留中のタスクはありません。</p>
+          </div>
+        ) : kpiCards.map((card) => (
           <Card
             key={card.title}
             className="cursor-pointer border-slate-800 bg-slate-900 hover:bg-slate-800 transition-colors"

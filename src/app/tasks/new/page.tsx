@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
 
+const TASK_DESC_TEMPLATE = "## 目的\n\n## 成果物\n\n## 受け入れ条件\n\n## 次の一手\n";
+
 export default function NewTaskPage() {
   const router = useRouter();
   const createTask = useMutation(api.tasks.create);
@@ -24,7 +26,7 @@ export default function NewTaskPage() {
   const [boardId, setBoardId] = useState("_none");
   const [status, setStatus] = useState<"todo" | "in_progress" | "blocked" | "waiting_decision" | "done" | "canceled">("todo");
   const [priority, setPriority] = useState<"p1" | "p2" | "p3">("p2");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(TASK_DESC_TEMPLATE);
   const [dueAt, setDueAt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 

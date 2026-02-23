@@ -31,13 +31,15 @@ interface GoalFormProps {
   submitLabel?: string;
 }
 
+const GOAL_DESC_TEMPLATE = "## 目的\n\n## 成功基準\n\n## スコープ\n\n## リスク\n";
+
 export function GoalForm({ defaultValues, onSubmit, isSubmitting, submitLabel = "保存" }: GoalFormProps) {
   const [title, setTitle] = useState(defaultValues?.title ?? "");
   const [domain, setDomain] = useState<"work" | "personal">(defaultValues?.domain ?? "work");
   const [area, setArea] = useState(defaultValues?.area ?? "");
   const [status, setStatus] = useState<GoalFormValues["status"]>(defaultValues?.status ?? "active");
   const [priority, setPriority] = useState<GoalFormValues["priority"]>(defaultValues?.priority ?? "p2");
-  const [description, setDescription] = useState(defaultValues?.description ?? "");
+  const [description, setDescription] = useState(defaultValues?.description ?? GOAL_DESC_TEMPLATE);
   const [tags, setTags] = useState(defaultValues?.tags ?? "");
   const [metrics, setMetrics] = useState<SuccessMetric[]>(defaultValues?.successMetrics ?? []);
 

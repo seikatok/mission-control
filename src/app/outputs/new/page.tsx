@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { OUTPUT_TYPE_LABELS } from "@/lib/constants";
 
+const OUTPUT_SUMMARY_TEMPLATE = "## 結論\n\n## 根拠\n\n## 次アクション\n\n## 添付\n";
+
 interface Artifact {
   kind: string;
   ref: string;
@@ -33,7 +35,7 @@ function NewOutputForm() {
   const [type, setType] = useState("other");
   const [goalId, setGoalId] = useState(initialGoalId);
   const [taskId, setTaskId] = useState(initialTaskId);
-  const [summary, setSummary] = useState("");
+  const [summary, setSummary] = useState(OUTPUT_SUMMARY_TEMPLATE);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 

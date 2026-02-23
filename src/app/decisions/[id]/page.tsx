@@ -11,6 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { DECISION_STATUS_LABELS, DECISION_STATUS_COLORS } from "@/lib/constants";
 import { TimeAgo } from "@/components/shared/time-ago";
+import { NotFound } from "@/components/shared/not-found";
 
 export default function DecisionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,8 @@ export default function DecisionDetailPage() {
   const decisionId = id as Id<"decisions">;
 
   const decision = useQuery(api.decisions.get, { id: decisionId });
+  const linkedTask = useQuery(api.tasks.get, decision?.taskId ? { id: decision.taskId } : "skip");
+  const linkedGoal = useQuery(api.goals.get, decision?.goalId ? { id: decision.goalId } : "skip");
 
   const [resolveAction, setResolveAction] = useState<"approve" | "reject" | "request_changes" | null>(null);
 
@@ -28,7 +31,7 @@ export default function DecisionDetailPage() {
       <div className="h-20 w-full bg-slate-800 rounded" />
     </div>
   );
-  if (decision === null) return <div className="p-6 text-sm text-slate-400">判断事項が見つかりません</div>;
+  if (decision === null) return <NotFound title="判断事項が見つかりません" backHref="/decisions" backLabel="判断一覧に戻る" />;
 
   const isPending = decision.status === "pending";
 
@@ -52,6 +55,45 @@ export default function DecisionDetailPage() {
           <span className="text-sm text-slate-400 capitalize">{decision.type.replace(/_/g, " ")}</span>
           <TimeAgo ms={decision.createdAt} className="text-xs text-slate-500" />
         </div>
+
+        {(decision.taskId || decision.goalId) && (
+          <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 space-y-1">
+            {decision.goalId && (
+              <p className="text-xs text-slate-400">
+                Goal:{" "}
+                {linkedGoal === undefined ? (
+                  <span className="text-slate-500">読み込み中...</span>
+                ) : linkedGoal === null ? (
+                  <span className="text-slate-500">—</span>
+                ) : (
+                  <button
+                    onClick={() => router.push(`/goals/${decision.goalId}`)}
+                    className="text-blue-400 hover:text-blue-300 underline"
+                  >
+                    {linkedGoal.title}
+                  </button>
+                )}
+              </p>
+            )}
+            {decision.taskId && (
+              <p className="text-xs text-slate-400">
+                Task:{" "}
+                {linkedTask === undefined ? (
+                  <span className="text-slate-500">読み込み中...</span>
+                ) : linkedTask === null ? (
+                  <span className="text-slate-500">—</span>
+                ) : (
+                  <button
+                    onClick={() => router.push(`/tasks/${decision.taskId}`)}
+                    className="text-blue-400 hover:text-blue-300 underline"
+                  >
+                    {linkedTask.title}
+                  </button>
+                )}
+              </p>
+            )}
+          </div>
+        )}
 
         {decision.description && (
           <p className="text-slate-300">{decision.description}</p>

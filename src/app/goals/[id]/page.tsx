@@ -17,6 +17,7 @@ import {
   DECISION_STATUS_COLORS,
 } from "@/lib/constants";
 import { TimeAgo } from "@/components/shared/time-ago";
+import { NotFound } from "@/components/shared/not-found";
 
 const GOAL_STATUS_COLORS: Record<string, string> = {
   active: "bg-green-600",
@@ -33,19 +34,17 @@ export default function GoalDetailPage() {
   const goal = useQuery(api.goals.get, { id: goalId });
   const boards = useQuery(api.boards.list, { goalId });
   const outputs = useQuery(api.outputs.list, { goalId, limit: 5 });
-  const decisions = useQuery(api.decisions.list, { status: "pending", limit: 5 });
+  const goalDecisions = useQuery(api.decisions.list, { goalId, status: "pending", limit: 5 });
 
   const tasks = useQuery(api.tasks.list, { goalId });
 
   if (goal === undefined) return <div className="p-6 text-sm text-slate-400">読み込み中...</div>;
-  if (goal === null) return <div className="p-6 text-sm text-slate-400">ゴールが見つかりません</div>;
+  if (goal === null) return <NotFound title="ゴールが見つかりません" backHref="/goals" backLabel="ゴール一覧に戻る" />;
 
   const totalTasks = tasks?.length ?? 0;
   const doneTasks = tasks?.filter((t) => t.status === "done").length ?? 0;
   const inProgressTasks = tasks?.filter((t) => t.status === "in_progress").length ?? 0;
   const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-
-  const goalDecisions = decisions?.filter((d) => d.goalId === goalId) ?? [];
 
   return (
     <div className="flex flex-col h-full">
@@ -105,7 +104,7 @@ export default function GoalDetailPage() {
               <p className="text-xs text-slate-500">進行中</p>
             </div>
             <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-center">
-              <p className="text-2xl font-bold text-yellow-400">{goalDecisions.length}</p>
+              <p className="text-2xl font-bold text-yellow-400">{goalDecisions?.length ?? 0}</p>
               <p className="text-xs text-slate-500">未解決の判断</p>
             </div>
             <div className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-center">
@@ -162,7 +161,7 @@ export default function GoalDetailPage() {
         {/* Decisions */}
         <div>
           <h2 className="text-sm font-medium text-slate-400 mb-2">承認待ちの判断</h2>
-          {goalDecisions.length === 0 ? (
+          {!goalDecisions || goalDecisions.length === 0 ? (
             <EmptyState title="承認待ちの判断はありません" />
           ) : (
             <div className="space-y-2">

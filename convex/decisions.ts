@@ -8,11 +8,23 @@ export const list = query({
       v.literal("pending"), v.literal("approved"), v.literal("rejected"),
       v.literal("changes_requested"), v.literal("canceled"),
     )),
+    goalId: v.optional(v.id("goals")),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 50, 200);
     const status = args.status ?? "pending";
+
+    if (args.goalId) {
+      return await ctx.db
+        .query("decisions")
+        .withIndex("by_goal_status", (q) =>
+          q.eq("goalId", args.goalId!).eq("status", status)
+        )
+        .order("desc")
+        .take(limit);
+    }
+
     return await ctx.db
       .query("decisions")
       .withIndex("by_status_createdAt", (q) => q.eq("status", status))

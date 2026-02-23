@@ -101,6 +101,14 @@ export default function TaskDetailPage() {
         title={task.title}
         action={
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-700 text-slate-300"
+              onClick={() => router.push(`/tasks/${task._id}/edit`)}
+            >
+              編集
+            </Button>
             {task.status === "in_progress" && (
               <Button
                 size="sm"

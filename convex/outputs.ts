@@ -2,6 +2,13 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { appendActivity, validateString, validateOptionalString } from "./helpers";
 
+export const get = query({
+  args: { id: v.id("outputs") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
 export const list = query({
   args: {
     goalId: v.optional(v.id("goals")),

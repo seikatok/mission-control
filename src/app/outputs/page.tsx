@@ -140,7 +140,11 @@ function OutputsContent() {
         ) : (
           <div className="space-y-3">
             {filteredOutputs.map((out) => (
-              <div key={out._id} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
+              <div
+                key={out._id}
+                className="cursor-pointer rounded-lg border border-slate-800 bg-slate-900 p-4 hover:bg-slate-800 transition-colors"
+                onClick={() => router.push(`/outputs/${out._id}`)}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

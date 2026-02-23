@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { PageHeader } from "@/components/layout/page-header";
@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GOAL_STATUS_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -20,29 +20,34 @@ const GOAL_STATUS_COLORS: Record<string, string> = {
   archived: "bg-zinc-600",
 };
 
-export default function GoalsPage() {
+function GoalsContent() {
   const router = useRouter();
-  const [domain, setDomain] = useState<"all" | "work" | "personal">("all");
-  const [status, setStatus] = useState<"all" | "active" | "paused" | "completed" | "archived">("all");
+  const searchParams = useSearchParams();
+
+  const domainFromUrl = (searchParams.get("domain") ?? "all") as "all" | "work" | "personal";
+  const statusFromUrl = (searchParams.get("status") ?? "all") as "all" | "active" | "paused" | "completed" | "archived";
+
+  function setDomain(v: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (v === "all") { params.delete("domain"); } else { params.set("domain", v); }
+    router.replace(`/goals?${params.toString()}`);
+  }
+
+  function setStatus(v: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (v === "all") { params.delete("status"); } else { params.set("status", v); }
+    router.replace(`/goals?${params.toString()}`);
+  }
 
   const goals = useQuery(api.goals.list, {
-    domain: domain === "all" ? undefined : domain,
-    status: status === "all" ? undefined : status,
+    domain: domainFromUrl === "all" ? undefined : domainFromUrl,
+    status: statusFromUrl === "all" ? undefined : statusFromUrl,
   });
 
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader
-        title="Goals"
-        description="目標とアウトカムの管理"
-        action={
-          <Button onClick={() => router.push("/goals/new")} className="bg-blue-600 hover:bg-blue-700">
-            + New Goal
-          </Button>
-        }
-      />
+    <>
       <div className="flex gap-3 px-6 py-3 border-b border-slate-800">
-        <Select value={domain} onValueChange={(v) => setDomain(v as typeof domain)}>
+        <Select value={domainFromUrl} onValueChange={setDomain}>
           <SelectTrigger className="w-36 bg-slate-900 border-slate-700 text-sm">
             <SelectValue placeholder="Domain" />
           </SelectTrigger>
@@ -52,7 +57,7 @@ export default function GoalsPage() {
             <SelectItem value="personal">Personal</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+        <Select value={statusFromUrl} onValueChange={setStatus}>
           <SelectTrigger className="w-40 bg-slate-900 border-slate-700 text-sm">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -124,6 +129,26 @@ export default function GoalsPage() {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+export default function GoalsPage() {
+  const router = useRouter();
+  return (
+    <div className="flex flex-col h-full">
+      <PageHeader
+        title="Goals"
+        description="目標とアウトカムの管理"
+        action={
+          <Button onClick={() => router.push("/goals/new")} className="bg-blue-600 hover:bg-blue-700">
+            + New Goal
+          </Button>
+        }
+      />
+      <Suspense fallback={<div className="h-8 animate-pulse bg-slate-800 rounded mx-6 my-3" />}>
+        <GoalsContent />
+      </Suspense>
     </div>
   );
 }
